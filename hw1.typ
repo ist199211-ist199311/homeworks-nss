@@ -9,6 +9,8 @@
 #set page("a4", header: header(title: "HW1"), footer: footer)
 #counter(page).update(1)
 
+#let rnd2 = calc.round.with(digits: 2)
+
 #outline()
 #pagebreak()
 
@@ -48,6 +50,97 @@ Considering the worst case, that is $d(A,E) = 1.5 d(A,B)$,
     $ p = binom(2, 1) dot 7/10 dot (1-7/10) = 0.43 $
 
 = Distributed Denial of Service
+
++ TODO: should we consider the first and last hosts of each subnet?
+
+  #let host_count = (16, 128, 512, 32)
+  - Network 1: /28 -> #host_count.at(0) hosts
+  - Network 2: /25 -> #host_count.at(1) hosts
+  - Network 3: /23 -> #host_count.at(2) hosts
+  - Network 4: /27 -> #host_count.at(3) hosts
+
+  #let hosts = host_count.sum()
+  Therefore, #hosts will be able to participate in the attack.
+
++ #let host_uplink = 2 // in Mbps
+  #let total_uplink = host_uplink * hosts
+
+  We can simply multiply the number of hosts by the uplink of each of them.
+
+  $ #host_uplink "Mbit/s" dot #hosts "hosts" = #total_uplink "Mbit/s"
+  = #rnd2(total_uplink / 1000) "Gbit/s"$
+
++ #let webserver_downlink = 2000 // in Mbps
+
+  Since we know the peak bandwidth from the previous question, we can divide it by
+  the total downlink bandwidth of the web server.
+
+  $ (#total_uplink "Mbit/s") / (#webserver_downlink "Mbit/s") =
+  #rnd2((total_uplink / webserver_downlink) * 100) % $
+
++ #let tcp_syn_len = 60 // in bytes
+  #let tcp_syn_len_bit = tcp_syn_len * 8 // in bits
+
+  Each SYN packet is $#tcp_syn_len dot 8 = #tcp_syn_len_bit$ bits long.\
+  Each host can send up to #host_uplink Mbit/s, therefore,
+
+  #let syn_per_host = (host_uplink * 1000) / tcp_syn_len
+  $ (#host_uplink "Mbit/s" dot 1000) / #tcp_syn_len_bit = #rnd2(syn_per_host) "SYN per second" $
+
+  So, per network, considering the number of hosts from question 1,
+
+  #let syn_per_network = host_count.map(c => c * syn_per_host)
+  #for (i, c) in host_count.enumerate() [
+    - Network #(i + 1): $#c "hosts" dot #rnd2(syn_per_host) "SYN segments/s"
+      = #rnd2(syn_per_network.at(i)) "SYN segments/s" $
+  ]
+
++ #let server_memory = 8 // in Gbytes
+  #let syn_memory = 256 // in bytes
+
+  We can simply divide the server memory by the memory each connection takes up.
+
+  #let max_syn = (8 * 1000 * 1000) / 256
+
+  $ (#server_memory "Gbytes") / (#syn_memory "bytes") = #max_syn "SYN segments" $
+
++ For one host:
+
+  $ t = (#max_syn "SYN segments") / (#rnd2(syn_per_host) "SYN segments/s") =
+  #rnd2(max_syn / syn_per_host) "s" $
+
++ For each network:
+
+  #for (i, throughput) in syn_per_network.enumerate() [
+    - Network #(i + 1): $ t_N_#(i + 1) = (#max_syn "SYN segments") / (#rnd2(throughput) "SYN segments/s")
+      = #rnd2(max_syn / throughput) "s" $
+  ]
+
++ Total SYN segment throughput for all networks together:
+
+  #let syn_total = syn_per_network.sum()
+  $ "throughput" = #(syn_per_network.map(t => [#rnd2(t)]).join([#sym.plus])) =
+  #rnd2(syn_total) "SYN segments/s" $
+
+  $ t = (#max_syn "SYN segments") / (#rnd2(syn_total) "SYN segments/s") =
+  #rnd2(max_syn / syn_total) "s" $
+
++ #let percent_memory = 0.3
+  We can simply do the same, but with #(percent_memory * 100)% of the total RAM:
+
+  #let percent_max_syn = max_syn * percent_memory
+
+  $ (#percent_memory dot #server_memory "Gbytes") / (#syn_memory "bytes") = #percent_max_syn "SYN segments" $
+
+  $ t = (#percent_max_syn "SYN segments") / (#rnd2(syn_total) "SYN segments/s") =
+  #rnd2(percent_max_syn / syn_total) "s" $
+
++ ?
+
+  From slides:
+  - Use a proxy in front of the actual server
+  - TCP/SYN cookies
+  - SCTP Protocol
 
 = Firewalls
 
