@@ -53,7 +53,7 @@ Considering the worst case, that is $d(A,E) = 1.5 d(A,B)$,
 
 + TODO: should we consider the first and last hosts of each subnet?
 
-  #let host_count = (16, 128, 512, 32)
+  #let host_count = (14, 126, 510, 30)
   - Network 1: /28 -> #host_count.at(0) hosts
   - Network 2: /25 -> #host_count.at(1) hosts
   - Network 3: /23 -> #host_count.at(2) hosts
@@ -84,8 +84,8 @@ Considering the worst case, that is $d(A,E) = 1.5 d(A,B)$,
   Each SYN packet is $#tcp_syn_len dot 8 = #tcp_syn_len_bit$ bits long.\
   Each host can send up to #host_uplink Mbit/s, therefore,
 
-  #let syn_per_host = (host_uplink * 1000) / tcp_syn_len
-  $ (#host_uplink "Mbit/s" dot 1000) / #tcp_syn_len_bit = #rnd2(syn_per_host) "SYN per second" $
+  #let syn_per_host = (host_uplink * 1000000) / tcp_syn_len_bit
+  $ (#host_uplink "Mbit/s" dot 1000000) / #tcp_syn_len_bit = #rnd2(syn_per_host) "SYN per second" $
 
   So, per network, considering the number of hosts from question 1,
 
@@ -100,7 +100,7 @@ Considering the worst case, that is $d(A,E) = 1.5 d(A,B)$,
 
   We can simply divide the server memory by the memory each connection takes up.
 
-  #let max_syn = (8 * 1000 * 1000) / 256
+  #let max_syn = (8 * 1000 * 1000 * 1000) / 256
 
   $ (#server_memory "Gbytes") / (#syn_memory "bytes") = #max_syn "SYN segments" $
 
