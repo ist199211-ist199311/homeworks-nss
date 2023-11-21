@@ -38,7 +38,7 @@
 
 #let header(title: none, authors: []) = {
   set text(10pt)
-  smallcaps[#title - NSS 2023]
+  smallcaps[#title - EP2500 NSS HT23]
   h(1fr)
   smallcaps[Diogo Correia, Rafael Oliveira]
   line(length: 100%, stroke: 0.5pt + rgb("#888"))
