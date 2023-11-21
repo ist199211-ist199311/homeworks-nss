@@ -53,7 +53,9 @@
 
     This would no longer allow the described attack to succeed, as each ticket will only be accepted by $B$ once, and the attacker cannot compute a new one (even for a compromised session key) without knowing $K_"BS"$.
 
-    #v(1fr) // force page break for style; next item wouldn't fit
+    Although in theory only $N_B$ would be necessary, it might be worth it to include $N_A$ as well (per above) in order to halve the probability of nonce collisions that could be exploited by the attacker with a replay attack.
+
+    This countermeasure could also be considered to render unnecessary sending ${N_B}_(K_"AB")$ in message 4, as the ticket is already scoped to $N_B$ and only $A$ would have $K_"AB"$ to encrypt and decrypt subsequent communications, but requiring $A$ to send ${N_B}_(K_"AB")$ simultaneously with the ticket prevents $B$ from falsely believing they have established a valid session with an attacker that could forward the ticket faster than $A$ but did not have $K_"AB"$ to actually communicate any further. If done repeatedly, and if for example $B$ allocated memory for each open session (by remembering, at the very least, $K_"AB"$), an attacker could potentially perform these steps repeatedly as part of a Denial of Service attack.
 
   + One way to solve this problem would be to promote _explicitness_ by specifying intent, in order to avoid any possible misinterpretations. For example, messages 3 and 4 of the protocol could be changed to:
 
