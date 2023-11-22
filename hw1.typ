@@ -309,7 +309,14 @@ Considering the worst case, that is $d(A,E) = 1.5 d(A,B)$,
 
   For *ALLOW-ALL*: 4, 5, 1, 2, 13, 14, 6, 7, 8, 9, 10, 11, 12, 15
 
-+ ?
++ DROP-ALL: better for secure environments, such as enterprise networks or other sensitive networks,
+  since it is preferred to cherry pick which traffic is allowed instead of blocking certain traffic.
+  ALLOW-ALL: better for a server that might launch services on various ports dynamically; it would be
+  pretty difficult to keep the firewall in sync with the existing services, so it's better to just
+  block sensitive services (e.g. databases) instead.
+
+  Keep in mind that it is trivial to change the behaviour of either of these by just adding a rule
+  at the end of the chain, that ACCEPTs/DROPs all other traffic (respectively).
 
 = Password Management
 
