@@ -66,7 +66,57 @@
 
     Finally, one should note that the countermeasure presented for attack (i) would also prevent this attack, since the length coincidence preconditions would no longer be true.
 
+#pagebreak()
+
 = Eavesdropping
+
+#set enum(numbering: "1)")
+
++ Considering the worst case scenario of $d(A, E) = 1.5 dot.c d(A, B)$, we can use the provided formula to calculate the secure rate between $A$ and $B$:
+
+  $ R_s (A, B) =& R(A, B) - R(A, E) \
+  =& k/(d^2 (A, B)) - k/(d^2 (A, E)) \
+  =& k/(d^2 (A, B)) - k/(1.5^2 dot.c d^2 (A, B)) \
+  =& k/(d^2 (A, B)) (1 - 1/(1.5^2)) \
+  =& 5/9 dot.c k/(d^2 (A, B)) $
+
+  where $k$ is some propportionality constant. We can then use that result to calculate the percentage of the transmission that can be communicated confidentially:
+
+  $ (R_s (A, B))/(R(A, B)) = (5/9 dot.c cancel(k/(d^2 (A, B))))/cancel(k/(d^2 (A, B))) = 5/9 approx 55.56% $
+
++ Using the percentage calculated in the previous question, we can determine the probability of transmitting data confidentially, on average, if we analyze the behavior over an arbitrarily large number of transmissions:
+
+  $ P = lim_(n -> +oo) (5/9 dot.c cancel(n))/cancel(n) = 5/9 $
+
+  where $5/9 dot.c n$ is the percentage of $n$ transmissions that can be communicated confidentially.
+
++ #set enum(numbering: "a)")
+
+  + With channel hopping every 250ms, a transmission that spans 1 second will last $(1000"ms")/(250"ms") = 4$ slots. We can therefore calculate the probability of such a transmission being completely confidential as:
+
+    $ P = sum_(i=0)^4 binom(4, i) (7/10)^i (3/10 dot.c 5/9)^(4-i) approx 56.4% $
+
+    where, with $i = 0..4$ channels being free from any eavesdroppers, for the 4 slots:
+
+    - $binom(4, i)$ represents choosing which $i$ channels are free;
+
+    - $(7/10)^i$ is the probability of choosing $i$ free channels $(7 = 10 - 3)$; and
+
+    - $(3/10 dot.c 5/9)^(4-i)$ is the probability of choosing $4-i$ eavesdropped channels $(3/10)$ and of communicating confidentially in each of them $(5/9)$ --- here, it is assumed that the circunstances of the previous questions still apply, with $A$ and $B$ still using (only) the proper physical-layer secure coding technique to transmit the data.
+
+    #v(1fr) // force page break, for style (next item would not fully fit)
+
+  + A transmission spanning 0.5 seconds will last $(500"ms")/(250"ms") = 2$ slots. For at least $78%$ to be confidential, there are 2 possible cases:
+
+    - either both channels chosen (for each of the 2 slots) are free and not being eavesdropped --- in this case, $100% >= 78%$ is transmitted confidentially; or
+    - one of the channels selected (for either of the 2 slots) is free, but the other is being eavesdropped --- in this case, $1/2 dot.c (100% + 5/9) = 7/9 approx 78%$ is transmitted confidentially.
+
+    We can therefore calculate the probabily with:
+
+    $ P = 1 - (3/10)^2 = 91% $
+
+    where $(3/10)^2$ is the probability of choosing an eavesdropped channel, twice (which is the only case that would lead to less than $78%$ of the transmission being confidential, as $1/2 dot.c (5/9 + 5/9) = 5/9 approx 55.56% < 78%$).
+
 
 = Distributed Denial of Service
 
