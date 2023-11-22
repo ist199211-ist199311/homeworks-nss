@@ -117,8 +117,91 @@
 
     where $(3/10)^2$ is the probability of choosing an eavesdropped channel, twice (which is the only case that would lead to less than $78%$ of the transmission being confidential, as $1/2 dot.c (5/9 + 5/9) = 5/9 approx 55.56% < 78%$).
 
+#pagebreak()
 
 = Distributed Denial of Service
+
+#set enum(numbering: "1)")
+
++ Assuming that the first (all-zeroes host ID) and last (all-ones host ID) addresses of each network cannot be hosts due to representing the network and broadcast (respectively), we have, for each network:
+
+  #let net_sizes = (28, 25, 23, 27)
+  #let host_counts = ()
+
+  #for (i, size) in net_sizes.enumerate(start: 1) [
+    #host_counts.push(calc.pow(2, 32 - size) - 2)
+    - Network \##i: $2^(32 - #size) - 2 = #(host_counts.last())$ hosts
+  ]
+
+  #let total_hosts = host_counts.sum()
+  In total, this means #total_hosts hosts can participate in the attack.
+
++ #let host_uplink = 2 // Mbit/s
+  #let total_uplink = host_uplink * total_hosts
+
+  With each host having #host_uplink Mbit/s of bandwith, and considering #total_hosts hosts, in aggregate they can generate a total bandwidth of $#host_uplink dot.c #total_hosts = #total_uplink "Mbit/s"$.
+
++ #let server_downlink = 2000 // Mbit/s
+
+  At the peak of the attack,
+
+  $ (#total_uplink "Mbit/s")/(#server_downlink "Mbit/s") = #(100*total_uplink/server_downlink)% $
+
+  of the webserver's link is used.
+
++ #let syn_size = 60 // Bytes
+  #let host_syn_rate = calc.floor(host_uplink*1e6/(syn_size*8))
+
+  Each host can generate
+
+  $ floor((#host_uplink "Mbit/s")/(#syn_size "Bytes")) = floor((#(host_uplink*1e6) "bits")/(#syn_size dot.c 8 "bits")) = #host_syn_rate "SYN/s" $
+
+  This means that each network can generate
+
+  #for (i, count) in host_counts.enumerate(start: 1) [
+    - Network \##i: $#count "hosts" times #host_syn_rate "SYN/s" = #(count * host_syn_rate) "SYN/s"$
+  ]
+
++ #let server_mem = 8 // GBytes (metric)
+  #let server_connection_alloc = 256 // Bytes
+  #let max_syn_segs = server_mem * 1e9 / server_connection_alloc
+
+  Assuming that each SYN segment received causes the webserver to allocate #server_connection_alloc Bytes, the number of segments required to fill up the web server's available memory is:
+
+  $ (#server_mem "GBytes")/(#server_connection_alloc "Bytes") = (#server_mem times 10^9)/#server_connection_alloc = #max_syn_segs "segments" $
+
++ #let host_clog_time = calc.round(max_syn_segs / host_syn_rate)
+
+  One host can clog the webserver's memory within
+
+  $ (#max_syn_segs "SYN")/(#host_syn_rate "SYN/s") approx #host_clog_time "s" $
+
++ Using the previous question's result, each network can clog the webserver's memory within
+
+  #let net_clog_times = ()
+  #for (i, count) in host_counts.enumerate(start: 1) [
+    #net_clog_times.push(calc.round(host_clog_time/count))
+    - Network \##i: $(#host_clog_time "s")/(#count "hosts") approx #net_clog_times.last() "s" $
+
+  ]
+
++ #let total_clog_time = calc.round(host_clog_time/total_hosts)
+
+  All the networks together can clog the webserver in
+
+  $ (#host_clog_time "s")/(#total_hosts "hosts") approx #total_clog_time "s" $
+
++ #let ids_detection_percentage = 0.3 // 0..1
+  #let ids_detection_time = ids_detection_percentage * total_clog_time
+
+  The attack would be detected by the IDS in $#(ids_detection_percentage*100)% dot.c #total_clog_time "s" approx #ids_detection_time "s"$.
+
++ In order to prevent against SYN flooding attacks, there are several measures that can be taken, such as:
+
+  - Using SYN cookies, preventing the server from allocating memory when receiving an initial SYN segment, only doing so after receiving the client's second message (this is also effective against origin spoofing, as the client will only be able to send a second message if they receive the server's response);
+  - Blocking TCP traffic and using SCTP _(Stream Control Transmission Protocol)_ instead, as it natively supports 4-way handshakes with cookies;
+  - Installing an Intrusion Prevention System (IPS) that has a certain probability of detecting SYN flooding attacks and dynamically adjusting firewall rules in order to block that traffic; and
+  - Mediating all connections with a proxy or load balancing server that is dedicated to bearing this load and delegating jobs to the actual web server(s).
 
 = Firewalls
 
