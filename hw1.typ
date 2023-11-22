@@ -1,3 +1,4 @@
+#import "@preview/tablex:0.0.6": tablex, hlinex, colspanx
 #import "common/template.typ": cover_page, header, footer, setup_page
 
 #cover_page(title: "Homework 1", date: "November 2023")
@@ -203,7 +204,89 @@
   - Installing an Intrusion Prevention System (IPS) that has a certain probability of detecting SYN flooding attacks and dynamically adjusting firewall rules in order to block that traffic; and
   - Mediating all connections with a proxy or load balancing server that is dedicated to bearing this load and delegating jobs to the actual web server(s).
 
+#pagebreak()
+
 = Firewalls
+
+#set enum(numbering: "1)")
+
++ #let requirement = counter("requirement")
+  #let req() = {
+    requirement.step()
+    requirement.display("(a)")
+  }
+  #let rule = counter("rule")
+  #let r() = {
+    rule.step()
+    rule.display()
+  }
+
+  Such stateful firewall rules could be:
+
+  #align(center)[
+    #tablex(
+      columns: (auto,) * 9,
+      align: center + horizon,
+      [*\#*], [*Direction*], [*Source*], [*Destination*], [*Protocol*], [*Src. Port*], [*Dest. Port*], [*State*], [*Action*],
+      hlinex(stroke: 2pt),
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <udp-vpn-in>], [IN], [#sym.star], [17.0.0.0/24], [UDP], [#sym.star], [1194], [N / E], [ACCEPT],
+      [#r() <udp-vpn-out>], [OUT], [17.0.0.0/24], [#sym.star], [UDP], [1194], [#sym.star], [EST.], [ACCEPT],
+      [#r() <udp-drop-in>], [IN], [#sym.star], [17.0.0.0/24], [UDP], [#sym.star], [#sym.star], [N / E], [DROP],
+      [#r() <udp-drop-out>], [OUT], [17.0.0.0/24], [#sym.star], [UDP], [#sym.star], [#sym.star], [N / E], [DROP],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <attacker-in>], [IN], [203.0.113.0/24], [17.0.0.0/24], [#sym.star], [#sym.star], [#sym.star], [N / E], [DROP],
+      [#r() <attacker-out>], [OUT], [17.0.0.0/24], [203.0.113.0/24], [#sym.star], [#sym.star], [#sym.star], [N / E], [DROP],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <ftp-plain-out>], [OUT], [17.0.0.0/24], [18.0.0.2], [TCP], [#sym.star], [20, 21], [N / E], [REJECT],
+      [#r() <ftp-secure-out>], [OUT], [17.0.0.0/24], [18.0.0.2], [TCP], [#sym.star], [22], [N / E], [ACCEPT],
+      [#r() <ftp-secure-in>], [IN], [18.0.0.2], [17.0.0.0/24], [TCP], [22], [#sym.star], [EST.], [ACCEPT],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <ssh-in>], [IN], [198.51.100.0/24], [17.0.0.0/24], [TCP], [#sym.star], [22], [NEW], [ACCEPT],
+      [#r() <ssh-out>], [OUT], [17.0.0.0/24], [192.51.100.0/24], [TCP], [22], [#sym.star], [EST.], [ACCEPT],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <icmp-out>], [OUT], [17.0.0.0/24], [#sym.star], [ICMP], [---], [---], [NEW], [ACCEPT],
+      [#r() <icmp-est-in>], [IN], [#sym.star], [17.0.0.0/24], [ICMP], [---], [---], [EST.], [ACCEPT],
+      [#r() <icmp-new-in>], [IN], [#sym.star], [17.0.0.0/24], [ICMP], [---], [---], [NEW], [DROP],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <dns-out>], [OUT], [17.0.0.0/24], [#sym.star], [UDP, TCP], [#sym.star], [53], [N / E], [ACCEPT],
+      [#r() <dns-in>], [IN], [#sym.star], [17.0.0.0/24], [UDP, TCP], [53], [#sym.star], [EST.], [ACCEPT],
+
+      colspanx(9)[_Requirement #req()_],
+      [#r() <other-in> ], [IN], [#sym.star], [17.0.0.0/24], [#sym.star], [#sym.star], [#sym.star], [N / E], [DROP],
+      [#r() <other-out> ], [OUT], [17.0.0.0/24], [#sym.star], [#sym.star], [#sym.star], [#sym.star], [N / E], [DROP],
+    )
+  ]
+
+  where "N / E" denotes "NEW / ESTABLISHED", and "EST." only the latter connection state.
+
++ #let rnum(target) = "#" + locate(loc => rule.at(query(target, loc).first().location()).first() + 1)
+  #let rnums(..targets) = targets.pos().map(rnum).join(", ")
+
+  In order to fulfill all the requirements, a possible rule ordering could be, for each default policy:
+
+  - *DROP-ALL:* #rnums(<attacker-in>, <attacker-out>, <udp-vpn-in>, <udp-vpn-out>, <ftp-plain-out>, <ftp-secure-out>, <ftp-secure-in>, <ssh-in>, <ssh-out>, <icmp-out>, <icmp-est-in>, <dns-out>, <dns-in>).
+  - *ACCEPT-ALL:* #rnums(<attacker-in>, <attacker-out>, <udp-vpn-in>, <udp-vpn-out>, <ftp-plain-out>, <ftp-secure-out>, <ftp-secure-in>, <ssh-in>, <ssh-out>, <icmp-out>, <icmp-est-in>, <dns-out>, <dns-in>, <other-in>, <other-out>).
+
+  #v(1fr) // force page break, for style (next item would not fully fit)
+
++ The two default policies work in opposite fashion and can be considered to be more appropriate for different contexts. Example use cases could be:
+
+  #set enum(numbering: "(i)")
+  - *DROP-ALL:*
+    + A sensitive network that must be as isolated as possible, with any potentially permitted traffic pattern having to be identified, analyzed, vetted, and approved for security purposes
+    + An environment pertaining to a highly-regulated economic sector, where certain requirements (such as forbidding any outbound traffic flows, for data protection reasons) are paramount and must be easily audited by government authorities
+  - *ACCEPT-ALL:*
+    + A server that frequently launches services on different ports, with a dynamicity that makes it harder to constantly adjust firewall rules to allow traffic to and from those services (or if doing so would introduce too much overhead)
+    + A development environment where flexibility and ease of service/configuration deployment take precedence over strict, in-depth access control (especially if it is already part of a larger, stricter network that safeguards it from most external interference)
+
+  It is also worth noting that it is trivial to emulate the opposite policy when using a given default policy, by simply appending the chain with a rule ACCEPT'ing or DROPP'ing all traffic (respectively for DROP-ALL and ACCEPT-ALL).
 
 = Password Management
 
