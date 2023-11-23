@@ -21,7 +21,7 @@
 
   #set enum(numbering: "(i)")
 
-  + The ticket ${A, K_"AB"}_(K_"BS")$ provided by $S$ to $B$ does not include any nonces, compromising its freshness, so an attacker that cracks a previous session key $K_"AB"$ can use it to encrypt  $N_B$ and then forge a message
+  + The ticket ${A, K_"AB"}_(K_"BS")$ provided by $S$ to $B$ (through $A$) does not include any nonces, compromising its freshness, so an attacker $T$ that cracks a previous session key $K_"AB"$ can use it to encrypt $N_B$ and then forge a message
 
     $ T -> B: quad {A, K_"AB"}_(K_"BS"), space.quarter {N_B}_(K_"AB") $
 
@@ -81,7 +81,7 @@
   =& k/(d^2 (A, B)) (1 - 1/(1.5^2)) \
   =& 5/9 dot.c k/(d^2 (A, B)) $
 
-  where $k$ is some propportionality constant. We can then use that result to calculate the percentage of the transmission that can be communicated confidentially:
+  where $k$ is some proportionality constant. We can then use that result to calculate the percentage of the transmission that can be communicated confidentially:
 
   $ (R_s (A, B))/(R(A, B)) = (5/9 dot.c cancel(k/(d^2 (A, B))))/cancel(k/(d^2 (A, B))) = 5/9 approx 55.56% $
 
@@ -103,7 +103,7 @@
 
     - $(7/10)^i$ is the probability of choosing $i$ free channels $(7 = 10 - 3)$; and
 
-    - $(3/10 dot.c 5/9)^(4-i)$ is the probability of choosing $4-i$ eavesdropped channels $(3/10)$ and of communicating confidentially in each of them $(5/9)$ --- here, it is assumed that the circunstances of the previous questions still apply, with $A$ and $B$ still using (only) the proper physical-layer secure coding technique to transmit the data.
+    - $(3/10 dot.c 5/9)^(4-i)$ is the probability of choosing $4-i$ eavesdropped channels $(3/10)$ and of communicating confidentially in each of them $(5/9)$ --- here, it is assumed that the circumstances of the previous questions still apply, with $A$ and $B$ still using (only) the proper physical-layer secure coding technique to transmit the data.
 
     #v(1fr) // force page break, for style (next item would not fully fit)
 
@@ -112,11 +112,11 @@
     - either both channels chosen (for each of the 2 slots) are free and not being eavesdropped --- in this case, $100% >= 78%$ is transmitted confidentially; or
     - one of the channels selected (for either of the 2 slots) is free, but the other is being eavesdropped --- in this case, $1/2 dot.c (100% + 5/9) = 7/9 approx 78%$ is transmitted confidentially.
 
-    We can therefore calculate the probabily with:
+    We can therefore calculate the probability with:
 
     $ P = 1 - (3/10)^2 = 91% $
 
-    where $(3/10)^2$ is the probability of choosing an eavesdropped channel, twice (which is the only case that would lead to less than $78%$ of the transmission being confidential, as $1/2 dot.c (5/9 + 5/9) = 5/9 approx 55.56% < 78%$).
+    where $(3/10)^2$ is the probability of choosing an eavesdropped channel twice (which is the only case that would lead to less than $78%$ of the transmission being confidential, as $1/2 dot.c (5/9 + 5/9) = 5/9 approx 55.56% < 78%$).
 
 #pagebreak()
 
@@ -140,7 +140,7 @@
 + #let host_uplink = 2 // Mbit/s
   #let total_uplink = host_uplink * total_hosts
 
-  With each host having #host_uplink Mbit/s of bandwith, and considering #total_hosts hosts, in aggregate they can generate a total bandwidth of $#host_uplink dot.c #total_hosts = #total_uplink "Mbit/s"$.
+  With each host having #host_uplink Mbit/s of bandwidth, and considering #total_hosts hosts, in aggregate they can generate a total bandwidth of $#host_uplink dot.c #total_hosts = #total_uplink "Mbit/s"$.
 
 + #let server_downlink = 2000 // Mbit/s
 
@@ -170,6 +170,8 @@
   Assuming that each SYN segment received causes the webserver to allocate #server_connection_alloc Bytes, the number of segments required to fill up the web server's available memory is:
 
   $ (#server_mem "GBytes")/(#server_connection_alloc "Bytes") = (#server_mem times 10^9)/#server_connection_alloc = #max_syn_segs "segments" $
+
+  Please note that it is assumed that the server's memory size is #server_mem GB and not #server_mem GiB.
 
 + #let host_clog_time = calc.round(max_syn_segs / host_syn_rate)
 
@@ -225,7 +227,7 @@
 
   #align(center)[
     #tablex(
-      columns: (auto,) * 9,
+      columns: (auto, auto, 2fr, 2fr, 2fr, 1fr, 1fr, auto, auto),
       align: center + horizon,
       [*\#*], [*Direction*], [*Source*], [*Destination*], [*Protocol*], [*Src. Port*], [*Dest. Port*], [*State*], [*Action*],
       hlinex(stroke: 2pt),
@@ -250,7 +252,7 @@
       [#r() <ssh-out>], [OUT], [17.0.0.0/24], [192.51.100.0/24], [TCP], [22], [#sym.star], [EST.], [ACCEPT],
 
       colspanx(9)[_Requirement #req()_],
-      [#r() <icmp-out>], [OUT], [17.0.0.0/24], [#sym.star], [ICMP], [---], [---], [NEW], [ACCEPT],
+      [#r() <icmp-out>], [OUT], [17.0.0.0/24], [#sym.star], [ICMP], [---], [---], [N / E], [ACCEPT],
       [#r() <icmp-est-in>], [IN], [#sym.star], [17.0.0.0/24], [ICMP], [---], [---], [EST.], [ACCEPT],
       [#r() <icmp-new-in>], [IN], [#sym.star], [17.0.0.0/24], [ICMP], [---], [---], [NEW], [DROP],
 
@@ -286,7 +288,7 @@
     + A server that frequently launches services on different ports, with a dynamicity that makes it harder to constantly adjust firewall rules to allow traffic to and from those services (or if doing so would introduce too much overhead)
     + A development environment where flexibility and ease of service/configuration deployment take precedence over strict, in-depth access control (especially if it is already part of a larger, stricter network that safeguards it from most external interference)
 
-  It is also worth noting that it is trivial to emulate the opposite policy when using a given default policy, by simply appending the chain with a rule ACCEPT'ing or DROPP'ing all traffic (respectively for DROP-ALL and ACCEPT-ALL).
+  It is also worth noting that it is trivial to emulate the opposite policy when using a given default policy, by simply appending the chain with a rule ACCEPT'ing or DROP'ing all traffic (respectively for DROP-ALL and ACCEPT-ALL).
 
 #pagebreak()
 
@@ -316,10 +318,10 @@
 
   From a security standpoint, more iterations make the KDF slower and are therefore better (magnifying the effect described above), but there is a trade-off to be considered with _usability_: if the KDF is _too_ slow, it may prove to be a limitation to legitimate users and impact normal system usage. In summary, more iterations are better but only up to a certain point, after which the impact on user experience is non-negligible.
 
-+ Considering peppers as described in the question, and assuming (per its wording) that they are kept by the user but generated by the server (per-user, perhaps pseudo-randomly):
++ Considering peppers as described in the question, and assuming (per its wording) that they are kept by the user but generated securely (per-user, perhaps pseudo-randomly):
 
-  - Advantage: if the system (including the authentication database) is fully compromised, the pepper is not stored anywhere, so attackers still need to bruteforce each user's pepper, which may be computationally infeasible (especially when paired with a slow hash function)
-  - Disadvantage: there can be usability concerns with regards to requiring users to store their pepper value and submitting it on every login request, which can be a burden if the pepper is sufficiently long
+  - Advantage: if the system (including the authentication database) is fully compromised, the pepper is not stored anywhere, so attackers still need to bruteforce each user's pepper, which may be computationally infeasible (especially when paired with a slow hash function);
+  - Disadvantage: there can be usability concerns with regards to requiring users to store their pepper value and submitting it on every login request, which can be a burden if the pepper is sufficiently long.
 
   #v(1fr) // force page break, for style (next item would not fully fit)
 
@@ -327,11 +329,13 @@
 
   - *64-bit salt:* since the salt value is known, using it is trivial if the scheme is public, and only ensures the calculation happens in the first place rather than using rainbow tables with pre-cracked hashes. This means that the entropy will be the same as the password's own entropy:
 
-  $ H = log_2 1 + H_P = 0 + H_P = 10 "bits" $
+    $ H = log_2 1 + H_P = 0 + H_P = 10 "bits" $
 
   - *64-bit pepper:* we now need to consider the unpredictability associated with the need for bruteforcing each of the 64 bits in the pepper:
 
-  $ H = 64 dot.c log_2 2 + H_P = 64 + 10 = 74 "bits" $
+    $ H = 64 dot.c log_2 2 + H_P = 64 + 10 = 74 "bits" $
+
+  Here, we assume that both the salt/pepper and the password are independent, and therefore $H = H_("salt/pepper") + H_P$.
 
 + In terms of unpredictability,
 
@@ -350,7 +354,7 @@
 
 + Communicating exclusively in-band through LSAs _(Link State Advertisements)_, it is not possible for $G$ and $E$ to introduce a fake link among themselves, as the advertisement would have to necessarily pass by one or more other routers, who would discard it. For example, if $G$ generated and signed an advertisement $AA = {"'I am G'", "'Next hop is E'"}_("Priv"_G)$ and then sent it to $E$ through $F$, the latter would realize that $AA$ is invalid (the next hop field should be $F$, not $E$) and would drop it.
 
-  Conversely, if $G$ and $E$ can communicate out-of-band, it is possible for them to pretend a fake link exists between them. For example, $G$ can generate $AA = {"'I am G'", "'Next hop is E'"}_("Priv"_G)$ as before, but now send it encoded as a regular data message addressed to $E$ (rather than announcing it as a control LSA to $F$). As $AA$ would now be disguised as a regular, inconspicuous data stream, any intermediary routers would be oblivious to it representing an LSA and would not validate it, simply forwarding it to $E$. On arrival, $E$ could then generate $AA' = {AA, "'I am E'", "'Next hop is F'"}_("Priv"_E)$ and only now advertise $AA'$ as an LSA that would necessarily be considered valid by other routers. Using this technique, $G$ and $E$ would be able to trick others into believing a link exists between them.
+  Conversely, if $G$ and $E$ can communicate out-of-band, it is possible for them to pretend a fake link exists between them. For example, $G$ can generate $AA = {"'I am G'", "'Next hop is E'"}_("Priv"_G)$ as before, but now send it encoded as a regular data message addressed to $E$ (rather than announcing it as a control LSA to $F$). As $AA$ would now be disguised as a regular, inconspicuous data stream, any intermediary routers would be oblivious to it representing an LSA and would not validate it, simply forwarding it to $E$. On arrival, $E$ could then generate $AA' = {AA, "'I am E'", "'Next hop is D'"}_("Priv"_E)$ and only now advertise $AA'$ as an LSA that would necessarily be considered valid by other routers. Using this technique, $G$ and $E$ would be able to trick others into believing a link exists between them.
 
   Evidently, this could also be simplified if both routers had each other's private keys and could sign initial advertisements on behalf of each other, therefore being able to forge valid LSAs claiming a link exists between them.
 
@@ -397,8 +401,8 @@
 
   + `140.0.0.0/8`, originally announced by `AS213` (`/8` means a netmask of `255.0.0.0`)
 
-    - VPR \#2 Covers the announcement, as $8_"(VRP.length)" <= 16_"(announcement)"$ and the first 8 bits of `140.0.0.0` (VRP) and `140.0.0.0` (announcement) are identical
-    - VRP \#2 Matches the announcement, as it Covers it, $16_"(announcement)" <= 16_"(VRP.maxlength)"$, and the announcement's origin ASN (`AS213`) is equal to the VRP's ASN (`AS213`)
+    - VPR \#2 Covers the announcement, as $8_"(VRP.length)" <= 8_"(announcement)"$ and the first 8 bits of `140.0.0.0` (VRP) and `140.0.0.0` (announcement) are identical
+    - VRP \#2 Matches the announcement, as it Covers it, $8_"(announcement)" <= 16_"(VRP.maxlength)"$, and the announcement's origin ASN (`AS213`) is equal to the VRP's ASN (`AS213`)
     - Conclusion: #underline([_valid_]) (at least one VRP Matches the announcement)
 
   + `130.237.0.0/16`, originally announced by `AS213` (`/16` means a netmask of `255.255.0.0`)
@@ -431,7 +435,7 @@
 
     Even with `AS213` announcing `140.0.0.0/8`, the attacker's `140.248.0.0/16` announcement would still prevail as it is more specific than the former, and routers will choose the route with the longest prefix.
 
-  + Yes, the solution would be the only use minimal ROAs - that is, only issue ROAs for exactly the routes that will be announced, rather than relying on the maxlength attribute for the flexibility it offers (which comes as a trade-off for security). In this case, the following two ROAs could be used:
+  + Yes, the solution would be to only use minimal ROAs - that is, only issue ROAs for exactly the routes that will be announced, rather than relying on the maxlength attribute for the flexibility it offers (which comes as a trade-off for security). In this case, the following two ROAs could be used:
 
     $ &("AS213", 140.0.0.0, 8, -) \
     &("AS213", 140.100.0.0, 16, -) $
