@@ -360,4 +360,77 @@
 
 + In order for $G$ and $E$ to control all communications between $A$ and $D$ regardless of what cost is advertised for the $G-E$ fake link (allowing it even to be arbitrarily large, $alpha >> 4$), they could recruit router $C$ to also become malicious. As all traffic passes through $C$ (except for that which already passes through $G$ and/or $E$), if that router can be controlled by a malicious actor, it could advertise all its paths as costing a very high value (or not advertise them at all), leading $A$ and $D$ to always choosing to route through $G$/$E$. $D$ would receive $C$'s new advertisement (either inflated or non-existent) directly, and $A$ would indirectly feel its consequences through the information propagated by $B$ and $H$.
 
+#pagebreak()
+
 = RPKI and ROA
+
+#set enum(numbering: "1)")
+
++ Considering the following language and procedures from the Internet Engineering Task Force:
+
+  #block(stroke: (left: 2pt + rgb("#888")), quote(block: true, attribution: [RFC6811])[
+      - (...)
+      - Covered: A Route Prefix is said to be Covered by a VRP when the VRP prefix length is less than or equal to the Route prefix length, and the VRP prefix address and the Route prefix address are identical for all bits specified by the VRP prefix length. (That is, the Route prefix is either identical to the VRP prefix or more specific than the VRP prefix.)
+      - Matched: A Route Prefix is said to be Matched by a VRP when the Route Prefix is Covered by that VRP, the Route prefix length is less than or equal to the VRP maximum length, and the Route Origin ASN is equal to the VRP ASN.
+
+    Given these definitions, any given BGP Route will be found to have one of the following validation states:
+      - NotFound: No VRP Covers the Route Prefix.
+      - Valid: At least one VRP Matches the Route Prefix.
+      - Invalid: At least one VRP Covers the Route Prefix, but no VRP Matches it.
+  ])
+
+  For each announcement:
+
+  #set enum(numbering: "(1):")
+
+  + `130.0.0.0/16`, originally announced by `AS234` (`/16` means a netmask of `255.255.0.0`)
+
+    - `130.0.0.0/16` is not compatible with any known VRP, so no VRP Covers the announcement
+    - Conclusion: #underline([_unknown_])
+
+  + `140.0.0.0/8`, originally announced by `AS213` (`/8` means a netmask of `255.0.0.0`)
+
+    - VPR \#2 Covers the announcement, as $8_"(VRP.length)" <= 16_"(announcement)"$ and the first 8 bits of `140.0.0.0` (VRP) and `140.0.0.0` (announcement) are identical
+    - VRP \#2 Matches the announcement, as it Covers it, $16_"(announcement)" <= 16_"(VRP.maxlength)"$, and the announcement's origin ASN (`AS213`) is equal to the VRP's ASN (`AS213`)
+    - Conclusion: #underline([_valid_]) (at least one VRP Matches the announcement)
+
+  + `130.237.0.0/16`, originally announced by `AS213` (`/16` means a netmask of `255.255.0.0`)
+
+    - VRP \#1 Covers the announcement, as $16_"(VRP.length)" <= 16_"(announcement)"$ and the first 16 bits of `130.237.0.0` (VRP) and `130.237.0.0` (announcement) are identical
+    - VRP \#1 does not Match the announcement, as the latter's origin ASN (`AS213`) is not equal to the VRP's ASN (`AS234`)
+    - No other VRPs Cover the announcement, as `130.237.0.0/16` is not compatible with the only other one
+    - Conclusion: #underline([_invalid_]) (at least one VRP Covers the announcement, but none Match it)
+
+  + `140.248.0.0/16`, originally announced by `AS213` (`/16` means a netmask of `255.255.0.0`)
+
+    - VPR \#2 Covers the announcement, as $8_"(VRP.length)" <= 16_"(announcement)"$ and the first 8 bits of `140.0.0.0` (VRP) and `140.248.0.0` (announcement) are identical
+    - VRP \#2 Matches the announcement, as it Covers it, $16_"(announcement)" <= 16_"(VRP.maxlength)"$, and the announcement's origin ASN (`AS213`) is equal to the VRP's ASN (`AS213`)
+    - Conclusion: #underline([_valid_]) (at least one VRP Matches the announcement)
+
+    #v(1fr) // force page break, for style (next item would not fully fit)
+
+  + `130.237.1.0/24`, originally announced by `AS234` (`/24` means a netmask of `255.255.255.0`)
+
+    - VRP \#1 Covers the announcement, as $16_"(VRP.length)" <= 24_"(announcement)"$ and the first 16 bits of `130.237.0.0` (VRP) and `130.237.1.0` (announcement) are identical
+    - VPR \#1 does not Match the announcement, as $24_"(announcement)" lt.eq.not 16_"(VRP.maxlength)"$
+    - No other VRPs Cover the announcement, as `130.237.1.0/24` is not compatible with the only other one
+    - Conclusion: #underline([_invalid_]) (at least one VRP Covers the announcement, but none Match it)
+
++ #set enum(numbering: "1)")
+
+  + Yes, VRP \#2 is susceptible to a forged-origin sub-prefix hijack, as it makes use of the maxlength property. Announcement \#4 could be an example of such an attack, with `AS431` forging an announcement (which, as described in the previous question, would be accepted as valid) as if it had originated from `AS213`, who is authorized to issue it.
+
+    If `AS213` does not make any analogous announcement, perhaps because it only uses (and announces) another subnet such as `140.100.0.0/16`, the attacker could announce `140.248.0.0/16` and be uncontested (this would be the only route for that subnet, as no other would be announced by the real AS), effectively giving them control over the subnet.
+
+    Even with `AS213` announcing `140.0.0.0/8`, the attacker's `140.248.0.0/16` announcement would still prevail as it is more specific than the former, and routers will choose the route with the longest prefix.
+
+  + Yes, the solution would be the only use minimal ROAs - that is, only issue ROAs for exactly the routes that will be announced, rather than relying on the maxlength attribute for the flexibility it offers (which comes as a trade-off for security). In this case, the following two ROAs could be used:
+
+    $ &("AS213", 140.0.0.0, 8, -) \
+    &("AS213", 140.100.0.0, 16, -) $
+
+    This means that an attacker could no longer announce `140.248.0.0/16` (even if allegedly on behalf of `AS213`), as none of the ROAs would Cover it.
+
+    It should be noted, however, that this solution prevents forged-origin *sub-*prefix hijacks, but it does not secure against forged-origin *prefix* hijacks, as an attacker can still forge an announcement such as `(140.0.0.0/8; ASPATH: AS[attacker], AS213)`, which would conflict with the real announcement made by the legitimate `AS213`. These attacks are of a lower severity, however, as then the attacker would no longer be presenting the _only_ route to `AS213`, just an additional one that would attract less traffic (especially since the fake announcement would always be one hop longer than the legitimate announcements coming directly from `AS213`).
+
++ With a global view of the network topology, we can consider and validate the `ASPATH` attribute in each announcement. In this manner, we can determine that announcement \#4 is invalid as there is no path connecting `AS213` to `AS431` directly, so it must have been forged. The remaining announcements are plausible as they refer to existing router paths in accordance with the known network layout.
