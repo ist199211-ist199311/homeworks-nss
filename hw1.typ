@@ -342,6 +342,22 @@
 
   However, this is no longer the case if other factors are present, such as if the KDF is not deterministic (based exclusively on the secret input) and generates a session-specific key, in which case the KDF output should be used to promote forward secrecy across sessions, assuming that the KDF is one-way.
 
+#pagebreak()
+
 = Byzantine Link
+
+#set enum(numbering: "1)")
+
++ Communicating exclusively in-band through LSAs _(Link State Advertisements)_, it is not possible for $G$ and $E$ to introduce a fake link among themselves, as the advertisement would have to necessarily pass by one or more other routers, who would discard it. For example, if $G$ generated and signed an advertisement $AA = {"'I am G'", "'Next hop is E'"}_("Priv"_G)$ and then sent it to $E$ through $F$, the latter would realize that $AA$ is invalid (the next hop field should be $F$, not $E$) and would drop it.
+
+  Conversely, if $G$ and $E$ can communicate out-of-band, it is possible for them to pretend a fake link exists between them. For example, $G$ can generate $AA = {"'I am G'", "'Next hop is E'"}_("Priv"_G)$ as before, but now send it encoded as a regular data message addressed to $E$ (rather than announcing it as a control LSA to $F$). As $AA$ would now be disguised as a regular, inconspicuous data stream, any intermediary routers would be oblivious to it representing an LSA and would not validate it, simply forwarding it to $E$. On arrival, $E$ could then generate $AA' = {AA, "'I am E'", "'Next hop is F'"}_("Priv"_E)$ and only now advertise $AA'$ as an LSA that would necessarily be considered valid by other routers. Using this technique, $G$ and $E$ would be able to trick others into believing a link exists between them.
+
+  Evidently, this could also be simplified if both routers had each other's private keys and could sign initial advertisements on behalf of each other, therefore being able to forge valid LSAs claiming a link exists between them.
+
++ #sym.quest.excl
+
++ Yes, if $A$ and $D$ wish to communicate with each other, the shortest real path $A - H - C - D$ has cost $2 + 4 + 3 = 9$, but if $G$ and $E$ advertise a fake link between them with cost $alpha <= 4$, the path $A - G - E - D$ with cost $3 + alpha + 1 <= 8 < 9$ would become the shortest, therefore tricking $A$ and $D$ into communicating through the malicious routers and attracting traffic.
+
++ In order for $G$ and $E$ to control all communications between $A$ and $D$ regardless of what cost is advertised for the $G-E$ fake link (allowing it even to be arbitrarily large, $alpha >> 4$), they could recruit router $C$ to also become malicious. As all traffic passes through $C$ (except for that which already passes through $G$ and/or $E$), if that router can be controlled by a malicious actor, it could advertise all its paths as costing a very high value (or not advertise them at all), leading $A$ and $D$ to always choosing to route through $G$/$E$. $D$ would receive $C$'s new advertisement (either inflated or non-existent) directly, and $A$ would indirectly feel its consequences through the information propagated by $B$ and $H$.
 
 = RPKI and ROA
