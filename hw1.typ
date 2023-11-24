@@ -354,7 +354,14 @@
 
   Evidently, this could also be simplified if both routers had each other's private keys and could sign initial advertisements on behalf of each other, therefore being able to forge valid LSAs claiming a link exists between them.
 
-+ #sym.quest.excl
++ As asymmetric cryptography primitives can be computationally intensive and introduce undesired overhead to every announcement hop, it would be beneficial to reduce this cost, while maintaining the desirable properties of authenticated announcements. One solution would be to use the protocol described in Papadimitratos & Haas (2002)#footnote[P. Papadimitratos and Z. J. Haas, "Securing the Internet routing infrastructure," in IEEE Communications Magazine, vol. 40, no. 10, pp. 60-68, Oct. 2002, doi: 10.1109/MCOM.2002.1039858.]:
+
+  - Each router $R$ sends their initial LSA as normal, with the exception that for each link $j$ it chooses a random value $N_(R,j)$ and includes $H^n (N_(R,j))$ in that initial LSA (which is authenticated with $R$'s private key and can be verified to be so by a receiving router $S$) --- here, $H^n (x) = H(H(...(H(x))))$ represents computing $n$ successive iterations of a hash function $H$, for some large $n$
+  - For each subsequent LSA transmitted by $R$, instead of signing it with its private key (which would be computationally expensive), it simply attaches to the LSA the next value in the hash chain, i.e., $H^(n-p) (N_(R,j))$, where $p$ is a counter between $0$ and $n$ of how many LSAs (including the initial one) have been sent by $R$ --- this means that each value $H^(n-p) (H_(R,j))$ is only sent once, as $p$ increases immediately afterwards
+  - When another router $S$ receives an LSA from $R$ that is not signed with the latter's private key but rather has some hash value $HH$, $S$ can verify the LSA was legitimately sent by $R$ by checking whether $H(HH) = HH'$, where $HH'$ is the previous hash value received from $R$ (in the previous authenticated LSA) --- since $H$ is one-way, only $R$ (that has the original secret) can generate $HH$ such that $H(HH) = HH'$. $S$ then stores $HH$ as the new value for $HH'$, so that it can verify the next LSA in the same fashion
+  - When $p = n$, $R$ chooses a new $N'_(R,j)$ and sends another LSA authenticated with its private key, including $H^n (N'_(R,j))$ and re-starting the hash chain from another secret
+
+  This protocol has the advantage of only requiring asymmetric cryptography computations every $n$ LSAs sent, greatly reducing the overhead associated with advertisement security. It also centralizes most of the computational burden on just one node (the LSA sender), as all others only need to compute one hash iteration (though the sender must compute $n-p$).
 
 + Yes, if $A$ and $D$ wish to communicate with each other, the shortest real path $A - H - C - D$ has cost $2 + 4 + 3 = 9$, but if $G$ and $E$ advertise a fake link between them with cost $alpha <= 4$, the path $A - G - E - D$ with cost $3 + alpha + 1 <= 8 < 9$ would become the shortest, therefore tricking $A$ and $D$ into communicating through the malicious routers and attracting traffic.
 
