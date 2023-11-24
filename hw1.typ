@@ -188,6 +188,8 @@
 
   ]
 
+  #v(1fr) // force page break, for style (next item would not fully fit)
+
 + #let total_clog_time = calc.round(host_clog_time/total_hosts)
 
   All the networks together can clog the webserver in
