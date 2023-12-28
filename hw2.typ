@@ -70,17 +70,61 @@
 
 + TODO
 
-+ TODO
+  ?
+
+  F will have to read the full packet if it wants to get some information, but
+  since it is end-to-end authenticated and its integrity is validated, it cannot
+  change anything without it being detected.
 
 + TODO
 
-+ TODO
+  ?
+
+  Packet dropping may or may not be addressed depending on the protocols being used
+  in the upper layers. If A sends a message and expects a response, F will not be able
+  to provide that authenticated response, but if A is just sending a message and G
+  only has to send an unauthenticated acknowledgement, F can fake that (e.g., TCP ACK).
+
+  In any case, even if A and/or G can know that their packets are being dropped, they
+  cannot do anything about it.
+
+  Packet data modification is addressed as its content is authenticated and its integrity
+  is validated, but packet metadata in the lower layers might be vulnerable to modifications.
 
 + TODO
 
-+ TODO
+  ?
+
+  Since feedback is now authenticated, F can no longer fake a response back.
+  It can still prevent packets from being sent, even if A and/or G are aware
+  packets are being dropped.
 
 + TODO
+
+  If the packet goes to C, it will still go to F.
+  If the packet goes to B, however, the shortest path is ABEG, which is not under attack.
+
+  Therefore, 50% of packets will be delivered to G.
+
++ TODO
+
+  If the packet goes to B, the shortest path is ABEG, which is not under attack.
+  If the packet goes to C, it can go either to B (not under attack), E (not under attack)
+  or to F (under attack).
+
+  Therefore,
+
+  $ P_"delivered" = 1 - 1/2 dot 1/3 = 5/6 $
+
++ TODO
+
+  Same as above, except that B can send to C and C to F.
+
+  $ P_"delivered" = 1 - 1/2 dot 1/3 - 1/2 dot 1/3 dot 1/2 = 1 - 1/6 - 1/12 = 3/4 $
+
++ TODO
+
+  To be certain, either B and C or D and E.
 
 #pagebreak()
 
