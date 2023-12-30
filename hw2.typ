@@ -124,7 +124,7 @@
 
 + TODO
 
-  To be certain, either B and C or D and E.
+  To be certain, either (B and C) or (D and E).
 
 #pagebreak()
 
@@ -134,9 +134,33 @@
 
 + TODO
 
-+ TODO
+  It is the probability phenomena where in a group of 23, there is a probability greater than 50%
+  that two people share a birthday. Generically, it is non-intuitively probable that there is a
+  collision between two distinct events, where trying to collide with a specific value would be
+  way less probable.
 
 + TODO
+
+  The BIND birthday attack works by sending $N$ requests to the DNS server, while also sending $N$
+  spoofed responses to the DNS server.
+  There are only $2^16$ possible transaction IDs, so it is more likely that out of those $N$ requests/response pairs,
+  one of them matches than that one request is sent and we try to guess which transaction ID it was.
+
+  Taking the analogy of birthdays, it is more likely that, out of two groups of 10 people, there is one pair that
+  shares a birthday than (at least) one person having a specific birthday out of a 20 people group.
+
++ TODO
+
+  Recalling the formula:
+
+  $ P_"collision" = 1 - (1 - 1/t)^((n dot (n-1))/2) $
+
+  Considering that the QID range is $[0; 2^16[$, that is, $2^16$ possible values,
+  we want to find $n$ such that:
+
+  $ P_"collision" >= 25 => 1 - (1-1/(2^16))^((n dot (n-1)) /2) >= 25 $
+
+  By plotting the graph of this function and intercepting with $y=0.25$, we find out $n=195$ (since $n$ is an integer).
 
 #pagebreak()
 
@@ -146,15 +170,45 @@
 
 + TODO
 
-+ TODO
+  They can perform a DoS attack by spoofing the "from address" in the request packet header.
+  This way, the DNS server will then send the response to the victim instead of the attacker,
+  using up the victim's bandwidth.
 
 + TODO
 
-+ TODO
+  No, DNSSEC only protects the contents of the DNS response.
+  Rate limiting? idk
 
 + TODO
 
+  $ "af" = 1200 / 64 = 18.75 $
+
+  It is important for the attacker that this number is high, so that they can exhaust
+  the victim's bandwidth without using much bandwidth themselves.
+
 + TODO
+
+  No, because the outgoing request from the resolver to the victim can still go through the firewall,
+  since new outgoing connections are allowed.
+
+  The private DNS resolver should only listen and reply to addresses in the local network. (?)
+
++ TODO
+
+  It is possible to prevent these responses from getting through the firewall, but they might still exhaust the link
+  until the firewall is reached.
+
+  We can use a firewall with a default DROP policy, and:
+
+  - OUT: NEW, ESTABLISHED
+  - IN: ESTABLISHED
+
+  This way, connections that have not been started by a host in the network would not be able
+  to get in to the network, no matter the number of attackers.
+
++ TODO
+
+  Rate limiting (?) idk
 
 #pagebreak()
 
