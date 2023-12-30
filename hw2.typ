@@ -218,9 +218,41 @@
 
 + TODO
 
-+ TODO
+  IDEA: Share a symmetric key using the certificate.
+
+  Since the card is resource constrained, we want to avoid multiple round trips
+  (that would involve keeping state on the card which might not be realistic).
+
+  Assumption: the reader knows the public key of the card.
+
+  $ R: a <- "Enc"_"Pub"_C (K_"CR") $ // is it a problem not sending a hash of this? can't think of a possible attack, the nonce on the next message protects it
+  $ R: b <- E_K_"CR" (N_R || m_1) $
+  $ R -> C: (a, b, "HMAC"(K_"CR", b)) $
+  $ ... $
+  $ C: c <- E_K_"CR" (N_R || m_2) $
+  $ C -> R: (c, "Sign"_"Priv"_C (H(c))) $
+  $ ... $
+  $ R: "Estimate RTT and" d(R,C) $
 
 + TODO
+
+  Assuming the cryptography functions have negligible overhead (i.e. are instantaneous),
+  we can still estimate $d(R,C)$ given the RTT.
+  If we can't assume negligible overhead for these functions, we might instead assume that
+  they take a static amount of time, and therefore only have to subtract that from the RTT.
+
++ TODO
+
+  ?
+  Assuming the second case in the question above, where there is a static processing time
+  overhead for the cryptographic functions in the protocol, one possibility would be
+  for a replay attack, where the attacker can reply with a previous message and pretend
+  to be closer to the reader by avoiding this cryptographic processing time.
+  Our protocol, however, already prevents replay attacks by the use of a nonce, so
+  this attack is not feasible.
+  To further protect, and assuming the card has that capability, we could also
+  include the processing time spent on the time in the response, so the reader can
+  more accurately determine $d(R, C)$.
 
 #pagebreak()
 
