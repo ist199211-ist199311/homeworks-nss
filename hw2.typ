@@ -262,10 +262,98 @@
 
 + TODO
 
-+ TODO
+  ???
+  - $alpha$ Soil moisture sensors
+  - $beta$ Climate controllers (nothing is specified about this, so we will assume we
+    only need to secure the controller and that the rest of the system is analog, e.g. fans, heaters, etc).
+  - $gamma$ Irrigation controllers (again, controller is digital, rest of the system is analog)
+  - $delta$ Drones (for simplicity, we will assume they can talk directly to the central server)
+  - $epsilon$ RFID readers --- should we include this?
+  - $zeta$ RFID tags
+
+  We assume that this is a mesh network, a Wireless Sensor Network as described in the slides,
+  and therefore there are no "access points" connecting the devices to the central server (sink).
+
+  NOTE: I'm not sure if we need to list all these devices or just a generic "sensor" and "sink".
 
 + TODO
 
-+ TODO
+  Our protocol is designed to prevent an attacker from reading and/or modifying measurements.
+  It should also prevent an attacker from deleting and/or reordering measurements without being detected.
+
+  For systems that need to receive commands (i.e., actions), the protocol must also prevent
+  a malicious actor from initiating or altering commands.
+
+  To achieve these goals, we will use symmetric encryption for confidentiality (using, for example, AES
+  with CBC cipher mode), and Message Authentication Codes (e.g., HMAC). To ensure measurements
+  aren't deleted and/or reordered, we will keep a counter per sensor, which increases with each measurement
+  (maybe use timestamps instead? might prevent attacks where the attacker delays packets).
 
 + TODO
+
+  ??
+  Hardware-accelerated AES is fast and does not consume a lot of power, so we can use that (e.g., AES-CBC).
+  HMAC with a SHA3-512 hash.
+
+  Interesting source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6806263/
+
++ TODO
+
+  ??
+
+  Note: it is assumed that we have secure path establishment in the network (footnote 1 of module 8 notes).
+
+  - *Initial key establishment ("pairing")*
+
+    It is assumed the IoT devices come preloaded with the sink's certificate (or, alternatively,
+    of a CA that signs the sink's certificate -- we'll keep this simple and assume the IoT devices
+    know the public key of the sink).
+
+    $S$ for sink, $D_i$ for device
+
+    #let key = $K_(D_i"/"S)$
+
+    $ D_i: "generates random" key $
+    $ D_i: a <- "Enc"_"Pub"_S (key, N_D_i) $
+    $ D_i -> S: (a, "HMAC"(key, a)) $
+    $ S: "validate hmac and stuff" $
+    $ S: b <- E_key ("\"key establishment\"", N_D_i, N_A) $
+    $ S -> D_i: (b, "HMAC"(key, b)) $
+    $ ... "bla bla do something with nonces" $
+
+    I'm not sure this works: an attacker would still be able to enrol any device they want,
+    and prevent the legit devices from being paired.
+    Should we have private keys on the IoT devices instead, all signed by the some (trusted) CA?
+
+  - *Sensor*
+
+    The sensor would periodically send messages back to the server, using the key it they have
+    established, where $"Seq"_D_i$ is the sequence number of the measurement.
+
+    $ D_i: a <- E_key (D_i, "Seq"_D_i, "measurement data") $
+    $ D_i -> S: (a, "HMAC"(key, a)) $
+
+  - *Command (actions)*
+
+    The server can also instruct the IoT devices to perform an action (e.g., trigger the irrigation systems):
+
+    $ S: a <- E_key (D_i, t^S_"clock", N_S, "action data") $
+    $ S -> D_i: (a, "HMAC"(key_a)) $
+
+  - *Other stuff*
+
+    Should we have periodic key refreshing? What about en route re-encryption? I think we should.
+
++ TODO
+
+  Note: assume en route re-encryption and key refreshing.
+
+  The encryption and "HMAC" guarantee authentication, confidentiality and integrity of the sensor data (measurements)
+  sent by the IoT sensor to the server (sink), as long as the adversary cannot get the key $key$.
+  This, of course, cannot be a valid assumption, since these IoT devices might be left unattended, and
+  therefore this key might be extracted by the adversary. Two measures are in place to attenuate this
+  vulnerability: first, this key is periodically refreshed (disguised as a measurement, for example),
+  making it infeasible for an attacker to keep extracting the key. Secondly, we have en route re-encryption,
+  which means that, as long as the attacker is more than one hop away from the IoT device, the message
+  will be encrypted with the key of another IoT device. To break this encryption, the attacker would need
+  the keys of all the IoT devices in the path from the sensor to the server.
