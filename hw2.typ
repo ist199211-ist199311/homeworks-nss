@@ -190,9 +190,42 @@
 
 #set enum(numbering: "1)")
 
-+ TODO
++ The birthday paradox is a probability phenomena which describes that within a
+  group of just 23 people, there is a $>50%$ probability of finding 2 people with
+  the same birthday. In generic terms, the birthday paradox refers to the fact
+  that it is non-intuitively probable for there to be a collision between two
+  distinct events. Though correct, this may seem counter-intuitive because $N$ to $N$ matching
+  is often confused with $N$ to $1$ matching (i.e., trying to find someone within
+  the group with a birthday on a specific date, which would be much less
+  probable).
 
-+ TODO
++ Traditional DNS cache poisoning attacks work by trying to mislead a DNS server $D$
+  into populating its cache with a false entry, such as having the server believe
+  the name `bank.com` has an `NS` record pointing to an attacker-controlled
+  resolver $T$ (and this would be cached for the duration of the record's TTL).
+  Victim end-hosts would then query $D$ for `bank.com` and it would resolve the
+  name recursively by querying $T$, which is attacker-controlled and would respond
+  with a forged `A` record for `bank.com` pointing to an attacker-controlled IP
+  address (which would also be cached by $D$, and by the victim).
+
+  In this traditional attack, a recursive resolver $D$ would be queried by the
+  attacker for a bogus `abc123.bank.com` subdomain (or any such variation) which
+  would not be in $D$'s cache and force it to recurse by querying another server.
+  The attacker would then immediately flood $D$ with $k$ forged responses (stating
+  the subdomain does not exist and naming $T$ as the `NS` authority for `bank.com`),
+  in hopes that one of them would be accepted by $D$ before the legitimate
+  response. The problem here, besides in terms of speed, lies in matching the
+  response's _Query ID_ field with the request's, which the attacker does not
+  know; since a `QID` has 16 bits, this makes the probability of a successful
+  guess $P = m/(2^(16))$.
+
+  The BIND birthday attack works by sending $n$ queries to the targeted DNS server $D$ (rather
+  than just one), while also sending $n$ spoofed responses to that server. As
+  previously described for the birthday scenario, this makes it much more probable
+  for the attacker to succeed, as it is only necessary for there to be a `QID` collision
+  between any one of the $n$ queries and one of the $n$ responses, rather than the
+  previous case of needing a collision between one of the $m$ responses with the
+  specific `QID` value associated with the single query made.
 
 + TODO
 
