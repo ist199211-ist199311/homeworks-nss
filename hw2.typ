@@ -235,17 +235,65 @@
 
 #set enum(numbering: "1)")
 
-+ TODO
++ The attacker can perform a DNS amplification attack by spoofing the DNS query IP
+  packet's source address field to be `203.130.1.5` (the victim's IP address) so
+  that the DNS server, upon resolving the query, will respond to the victim. The
+  importance of this attack is that each response packet sent to the victim is
+  much larger than each request packet sent by the attacker ($1200 "Bytes" "vs" 64 "Bytes"$),
+  meaning that the attacker can easily overwhelm the victim (and/or the link
+  connecting the victim to the rest of the network) while only spending a fraction
+  of their own bandwidth. As the name implies, an amplification attack allows the
+  perpetrator to amplify its effects in relation to the effort applied.
 
-+ TODO
++ No, DNSSEC cannot prevent this attack, as it only protects the authenticity and
+  integrity of specific records. This attack does not hinge on any sort of forged
+  DNS records, as it depends only on responses being larger than queries, and
+  DNSSEC does not help in that respect (if anything, DNSSEC could perhaps lead to
+  even larger response sizes for signatures to be included). Additionally, DNSSEC
+  does not authenticate queries (only responses), so it would not stop the
+  attacker from spoofing the victim.
 
-+ TODO
+  A possible countermeasure would be to require DNS to take place exclusively over
+  TCP (rather than UDP), as the latter is a connection-less protocol but the
+  former is not, and thus would not allow the attacker to spoof the victim's IP
+  address: they would not be able to complete the TCP three-way handshake as the
+  server's first message would be sent to the victim and not the attacker.
 
-+ TODO
++ In this scenario, the amplification factor is:
 
-+ TODO
+  $ f = "size"_"response"/"size"_"request" = (1200 "Bytes")/(64 "Bytes") = 18.75 $
 
-+ TODO
+  It is important for the attacker for the amplification to be as high as
+  possible, so that they can have a greater chance of exhausting the victim's
+  bandwidth and computational resources without using too much of their own.
+
++ No, the described firewall rules would not prevent this sort of attack, as they
+  allow the private resolver to send outgoing packets even for `NEW` connections,
+  meaning that the attacker could send it spoofed queries and the resolver would
+  be able to send the response to the victim.
+
+  A solution here could be for the private resolver to only respond to queries
+  with a source address within the local network it is intended to serve (in this
+  case, `192.168.1.0/24`). This would still allow the attacker to target local
+  victims, but if that is a concern, DNS over TCP could be enforced as described
+  above to prevent spoofing altogether, despite the potential performance overhead
+  it implies.
+
++ An administrator in the victim's network can introduce firewall rules
+
+  - `IN DNS ESTABLISHED ACCEPT`
+  - `OUT DNS NEW/ESTABLISHED ACCEPT`
+
+  with a `DROP-ALL` default policy, which would prevent any unsolicited DNS
+  responses from entering the network, no matter the number of attackers. However,
+  this would only protect that network itself, and an attacker might still be able
+  to exhaust a link before the firewall.
+
++ An administrator of the public resolver can prevent spoofing by requiring DNS
+  over TCP, as described above (or a higher-level solution such as DNS over TLS or
+  DNS over HTTPS, which use TCP/QUIC). Otherwise, if that is not possible, they
+  could potentially mitigate the problem by reducing the amplification factor,
+  configuring the response size to be smaller.
 
 #pagebreak()
 
