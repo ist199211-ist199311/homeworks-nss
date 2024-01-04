@@ -113,7 +113,7 @@
   messages ($M^arrow.t$) might not be mapped one-to-one with the lower-level
   messages ($M_arrow.b$) that $F$ intercepts and processes - for example, if $M^arrow.t$ are
   larger in size than $M_arrow.b$, one $M^arrow.t$ could be spread over several $M_arrow.b$;
-  alternatively, for the opposite scenario, one $M_arrow.b$ could accomodate
+  alternatively, for the opposite scenario, one $M_arrow.b$ could accommodate
   several $M^arrow.t$ sent at once. The crucial point to realize here is that $F$ can
   only deal with $M_arrow.b$ messages, but (unless as described above) they can
   only drop units of $M^arrow.t$, which can be a disparity that makes any attacks
