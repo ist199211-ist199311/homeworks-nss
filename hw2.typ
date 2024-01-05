@@ -337,12 +337,19 @@
   $"Pub"_C$ from $"Cert"_C$). A possible augmented protocol could then be as
   follows:
 
-  $ R:     & k <- "RNG"() \
-  R:     & a <- "Enc"_"Pub"_"C" (k) \
+  $ R:     & "generate a random" k \
+  R:     & a <- "Enc"_"Pub"_C (k) \
   R:     & b <- E_k (m_1) \
-  R -> C:& (N_R, a, b, "HMAC"_k (N_R, a, b)) \
+  R:     & h_1 <- "HMAC"_k (N_R, a, b) \
+  R -> C:& (N_R, a, b, h_1) \
+  C: & k <- "Dec"_"Priv"_C (a) \
+  C: & h == "HMAC"_k (N_R, a, b) \
+  C: & m_1 <- D_k (b) \
   C:     & c <- E_k (m_2) \
-  C -> R:& (N_R, c, "HMAC"_k (N_R, c)) \
+  C: & h_2 <- "HMAC"_k (N_R, c) \
+  C -> R:& (N_R, c, h_2) \
+  R: & h_2 == "HMAC"_k (N_R, c) \
+  R: & N_R == N_R \
   R:     & "Estimate RTT and" d(R, C) $
 
   where $"HMAC"_K$ is the HMAC function as defined in RFC 2104 using key $K$, and $m_1$ and $m_2$ refer
