@@ -361,9 +361,73 @@
   key), which is an invaluable quality when considering a resource-constrained
   device.
 
-+ TODO
+  #v(1fr) // page break
 
-+ TODO
++ No, it is not possible for the reader to get accurate estimations of $d(R, C)$,
+  as physical neighborhood does not always imply communication neighborhood#footnote[P. Papadimitratos et al., "Secure neighborhood discovery: a fundamental element
+    for mobile ad hoc networking," in IEEE Communications Magazine, vol. 46, no. 2,
+    pp. 132-139, February 2008, doi: 10.1109/MCOM.2008.4473095.], meaning that a
+  malicious actor can perpetrate an attack (such as the one described below) to
+  mislead the reader into believing $d(R, C)$ is shorter than in reality. Accurate
+  estimations would only be possible, in this specific scenario, under the
+  assumption that any physical distance is representative - for example, that the
+  full range of the reader (i.e., a sphere centered around $R$ with a $30m$ radius)
+  is clear of any obstructions, wireless communication interferences, and
+  non-wireless communication means.
+
+  Nevertheless, it should be noted that the protocol does impose an effective
+  upper bound on $d(R, C)$ - that is, an attacker can also mislead $R$ into
+  believing the communication distance is shorter than in reality, but never that
+  the distance is larger. By measuring the signal round-trip time and multiplying
+  it by the signal propagation speed, $R$ obtains an estimation for $d(R, C)$ that
+  is reasonable in the absence of malicious actors (or unaccounted external
+  forces) and that in any case is an upper bound for the real distance. However,
+  it should be considered whether the cryptographic computations described above
+  (as well as any others required for $C$ to compute $m_2$) take up a
+  non-negligible amount of time, in which case a static approximation of such time
+  should also be taken into account during this calculation (otherwise, $C$ might
+  measure this computation time and include it in the response to $R$ to aid with
+  the calculation).
+
++ One way an attacker could mislead $R$ into believing $d(R, C)$ is shorter than
+  in reality, would be implementing an out-of-band relay between $C$ and $R$, such
+  as in the diagram below:
+
+  #let diag_h = 20%
+  #let diag_center(c) = block(height: diag_h, align(center + horizon, c))
+  #figure([
+    #columns(7, gutter: 0pt, [
+      #diag_center(circle($R$))
+      #colbreak()
+      #diag_center(circle($T_1$))
+      #colbreak()
+      #diag_center(line(length: 30pt, stroke: (dash: "dashed")))
+      #colbreak()
+      #rect(height: diag_h, align(center + horizon, [Wall]))
+      #colbreak()
+      #diag_center(line(length: 30pt, stroke: (dash: "dashed")))
+      #colbreak()
+      #diag_center(circle($T_2$))
+      #colbreak()
+      #diag_center(circle($C$))
+    ])
+  ], caption: [Diagram of a possible attack.])
+
+  where $T_1$ and $T_2$ are attacker-controlled relay devices that communicate via
+  wire (out-of-band) through a wall, with such devices also communicating wireless
+  with $R$ and $C$ respectively and simply forwarding each $R$/$C$ message in a
+  wired fashion "through the wall", completely transparently and much faster than
+  if $C$ and $R$ tried to communicate using wireless signals (going around the
+  wall). This would lead $R$ into measuring a much smaller RTT, which in turn
+  would mislead it into believing $d(R, C)$ is much shorter than the real
+  communication distance (this is true even if $C$ is out of range, in which case
+  we consider $d(R, C) = +infinity$).
+
+  The protocol described above does not protect against this sort of "wormhole"
+  attack, as it is not possible to account for such a disparity between physical
+  and communication distance. However, it does protect against other types of
+  relay attacks, as a nonce is included in the protocol messages preventing them
+  from being accepted twice.
 
 #pagebreak()
 
