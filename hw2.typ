@@ -227,7 +227,28 @@
   previous case of needing a collision between one of the $k$ responses with the
   specific `QID` value associated with the single query made.
 
-+ TODO
++ Recalling the formula from the given article, we can calculate the probability of a collision
+  in function of the number of queries/replies, $n$:
+
+  $ P_"collision" = 1 - (1 - 1/t)^((n dot (n-1))/2) $
+
+  Considering that the QID range is $[0; 2^16[$, that is, $t = 2^16$ possible values,
+  we want to find $n$ such that:
+
+  $
+  P_"collision" >= 0.25
+  & => 1 - (1-1/(2^16))^((n dot (n-1)) /2) >= 0.25 \
+  & => (1 - 1/2^16)^((n(n-1))/2) <= 0.75 \
+  & => ln((1 - 1/2^16)^((n(n-1))/2)) <= ln(0.75) \
+  & => (n(n-1))/2 dot ln(1 - 1/2^16) <= ln(0.75) \
+  & => n(n-1) >= 2 dot ln(0.75)/ln(1 - 1/2^16) \
+  & => n^2 - n - 2 dot ln(0.75)/ln(1 - 1/2^16) >= 0 \
+  & => #rect[$n >= 194.7$] or cancel(cross: #true, n <= -193.7)
+  $
+
+  Since $n$ must be a positive integer, the lowest positive integer that satisfies
+  the inequation is $n = 195$. Therefore, 195 spoofed replies are required to
+  achieve at least 25% chance of collision.
 
 #pagebreak()
 
