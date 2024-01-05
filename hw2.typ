@@ -299,7 +299,43 @@
 
 #set enum(numbering: "1)")
 
-+ TODO
++ Considering that $C$ is a resource-constrained device, we should strive to avoid
+  multi-step communications that require round-trips and maintaining state within
+  the card, which perhaps would not be realistic. In addition, given that $C$ is
+  bound to a certificate known to $R$ but the opposite is not true (nor would it
+  make much sense due to $C$'s lack of resources and the possibility of there
+  existing several readers), we assume that it is only relevant for the reader to
+  be able to authenticate the card, but not vice-versa. Finally, due to asymmetric
+  cryptography being much more computationally expensive than symmetric, our goal
+  should be to use the latter and reduce the use of the former as much as possible
+  (but not entirely as it is the only way to provide effective card
+  authentication; $R$ can extract
+  $"Pub"_C$ from $"Cert"_C$). A possible augmented protocol could then be as
+  follows:
+
+  $ R:     & k <- "RNG"() \
+  R:     & a <- "Enc"_"Pub"_"C" (k) \
+  R:     & b <- E_k (m_1) \
+  R -> C:& (N_R, a, b, "HMAC"_k (N_R, a, b)) \
+  C:     & c <- E_k (m_2) \
+  C -> R:& (N_R, c, "HMAC"_k (N_R, c)) \
+  R:     & "Estimate RTT and" d(R, C) $
+
+  where $"HMAC"_K$ is the HMAC function as defined in RFC 2104 using key $K$, and $m_1$ and $m_2$ refer
+  to the messages from the original protocol this one augments.
+
+  This protocol guarantees card-to-reader authentication and card non-repudiation
+  as only $C$ would have $"Priv"_C$ with which to decrypt $a$ and obtain the
+  symmetric key $k$ with which to generate a valid HMAC for the response message.
+  That same HMAC in both messages (covering the entirety of the message) is what
+  guarantees integrity, amd confidentiality is ensured because both $m_1$ and $m_2$ are
+  transmitted encrypted with key $k$ which only the two legitimate parties have.
+  Additionally, replay attacks are not possible since freshness is guaranteed by
+  the inclusion of a per-exchange nonce in the request and response messages (with
+  said nonce also being used as HMAC input). This protocol also has the advantage
+  of not requiring any state to be persisted on the card (except for its private
+  key), which is an invaluable quality when considering a resource-constrained
+  device.
 
 + TODO
 
