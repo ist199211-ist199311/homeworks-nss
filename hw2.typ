@@ -217,14 +217,14 @@
   response. The problem here, besides in terms of speed, lies in matching the
   response's _Query ID_ field with the request's, which the attacker does not
   know; since a `QID` has 16 bits, this makes the probability of a successful
-  guess $P = m/(2^(16))$.
+  guess $P = k/(2^(16))$.
 
   The BIND birthday attack works by sending $n$ queries to the targeted DNS server $D$ (rather
   than just one), while also sending $n$ spoofed responses to that server. As
   previously described for the birthday scenario, this makes it much more probable
   for the attacker to succeed, as it is only necessary for there to be a `QID` collision
   between any one of the $n$ queries and one of the $n$ responses, rather than the
-  previous case of needing a collision between one of the $m$ responses with the
+  previous case of needing a collision between one of the $k$ responses with the
   specific `QID` value associated with the single query made.
 
 + TODO
@@ -265,7 +265,9 @@
 
   It is important for the attacker for the amplification to be as high as
   possible, so that they can have a greater chance of exhausting the victim's
-  bandwidth and computational resources without using too much of their own.
+  bandwidth and computational resources without using too much of their own. If
+  the amplification factor is too low, the malicious actor might be dissuaded and
+  try to find another vulnerability or victim instead.
 
 + No, the described firewall rules would not prevent this sort of attack, as they
   allow the private resolver to send outgoing packets even for `NEW` connections,
@@ -279,15 +281,11 @@
   above to prevent spoofing altogether, despite the potential performance overhead
   it implies.
 
-+ An administrator in the victim's network can introduce firewall rules
-
-  - `IN DNS ESTABLISHED ACCEPT`
-  - `OUT DNS NEW/ESTABLISHED ACCEPT`
-
-  with a `DROP-ALL` default policy, which would prevent any unsolicited DNS
-  responses from entering the network, no matter the number of attackers. However,
-  this would only protect that network itself, and an attacker might still be able
-  to exhaust a link before the firewall.
++ An administrator in the victim's network can introduce firewall rules `IN DNS ESTABLISHED ACCEPT` and `OUT DNS NEW/ESTABLISHED ACCEPT` with
+  a `DROP-ALL` default policy, which would prevent any unsolicited DNS responses
+  from entering the network, no matter the number of attackers. However, this
+  would only protect that network itself, and an attacker might still be able to
+  exhaust a link before the firewall.
 
 + An administrator of the public resolver can prevent spoofing by requiring DNS
   over TCP, as described above (or a higher-level solution such as DNS over TLS or
