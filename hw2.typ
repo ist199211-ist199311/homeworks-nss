@@ -435,76 +435,66 @@
 
 #set enum(numbering: "1)")
 
-+ The farm has the following connected IoT devices:
++ The farm has the communicating IoT devices listed below, which can be assigned three generic categories according to their communication role within the network: *sensor*, *sink*, and *controller* (sensors send data to the sink, and the sink sends commands to controllers).
 
-  - $M_1,dots,M_k$ soil moisture sensors
-  - $C_1,dots,C_p$ climate controllers
-  - $I_1,dots,I_q$ irrigation controllers
-  - $"Dr"_1,dots,"Dr"_m$ drones
-  - $R_1,dots,R_o$ RFID readers
-  - $T_1,dots,T_l$ RFID tags
-  - $S$, sink (i.e., the central server)
+  - $M_1,dots,M_k$ soil moisture *sensors*
+  - $C_1,dots,C_l$ climate *controllers*
+  - $I_1,dots,I_m$ irrigation *controllers*
+  - $"Dr"_1,dots,"Dr"_n$ drones (*sensors* and *controllers*, simultaneously)
+  - $R_1,dots,R_o$ RFID readers (*sensors*)
+  - $T_1,dots,T_p$ RFID tags (communicate with readers)
+  - $S$, *sink* (i.e., the central server)
 
   For simplicity, it is assumed that the devices are laid out in a mesh network,
-  that is, a Wireless Sensor Network as described in the lectures,
-  and therefore all devices are able to send/receive messages to/from the sink.
-  It is also assumed that secure route discovery is a solved problem, and therefore
-  it is not revisited in this exercise.
-
-  Additionally, the devices above can be split into three generic categories, *sensor*, *controller*,
-  and *sink*. It is also worth noting that nothing prevents a device from being both a
-  sensor and a controller.
+  that is, a Wireless Sensor Network as described in this course,
+  and thus all devices are able to send/receive messages to/from the sink (i.e., there is always a path that allows it, potentially including more intermediaries). We also assume that secure route discovery is guaranteed, due to being out of the scope of this exercise.
 
 + The protocol is designed to prevent an attacker from reading and/or modifying measurements.
   It also prevents an attacker from deleting and/or reordering measurements without being detected.
 
-  For systems that need to receive commands (i.e., controllers), the protocol must also prevent
+  For devices that need to receive commands (i.e., controllers), the protocol must also prevent
   a malicious actor from initiating or altering commands.
 
-  For both types of systems, that is, sensors and controllers, the protocol ensures authenticity
+  For both types of devices (i.e., sensors and controllers), the protocol ensures authenticity
   of the messages by making sure they cannot be forged as if coming from another party, through the
-  use of a shared key only known to the device and the sync.
+  use of a shared key only known to the device and the sink.
 
   Keeping in mind the restrictions associated with low-power IoT devices, to achieve these goals
   symmetric encryption is used for confidentiality, and Message Authentication Codes (MAC)
   for integrity and authenticity. Asymmetric cryptography was discarded for most communications
-  because it more computationally intensive than symmetric cryptography; it is still used for the initial
+  because it is more computationally intensive than symmetric cryptography, though it is still used for the initial
   key establishment.
-  To ensure measurements aren't deleted and/or reordered, we will keep
-  a logic clock per sensor (effectively a counter), which increases with each measurement, along with
-  another one on the sink; a timestamp approach was discarded due to the challenges of synchronizing time
+  In order to ensure measurements are not deleted and/or reordered, we will maintain
+  a logic clock per sensor (effectively a clock), which increases with each measurement, along with
+  a corresponding one on the sink; a timestamp approach was discarded due to the challenges of synchronizing time
   on such power-constrained devices.
 
   Given the unattended nature of these devices, in order to decrease the probability of an attacker
   compromising the cryptographic keys, the protocol must account for periodic key refreshing, without
   compromising previous or subsequent sessions.
 
-  While, as said previously, this protocol will not focus on secure route discovery, it is still important
+  While this protocol will not focus on secure route discovery (as mentioned above), it is still important
   to note that the IoT devices can communicate with the sink through other devices, without losing any of
-  the properties mentioned above, even if they are not in range of one another.
+  the properties mentioned above, even if they are not in range.
 
-+ Due to the power constraints of IoT devices (both power consumption and available computational power),
-  it is important to pick low-power and efficient cryptographic algorithms for the protocol.
++ Due to the resource constraints in IoT devices (both power consumption and available computational power),
+  it is important to select low-power and efficient cryptographic algorithms for the protocol.
   For sending measurements to the sink and actions to controllers, using a symmetric cryptographic
   algorithm (in contrast to an asymmetric one) is an immediate choice: they use significantly less
   resources than their asymmetric counterparts.
 
-  Based on available research #footnote[
-    Saraiva, D.A.F.; Leithardt, V.R.Q.; de Paula, D.; Sales Mendes, A.; González, G.V.;
-    Crocker, P. PRISEC: Comparison of Symmetric Key Algorithms for IoT Devices.
-    Sensors 2019, 19, 4312. https://doi.org/10.3390/s19194312
-  ], it is clear that the best option for data encryption, ensuring confidentiality,
-  is to use hardware-accelerated AES. However, since that might now be available,
+  Based on available research#footnote[D. Saraiva et al., "PRISEC: Comparison of Symmetric Key Algorithms for IoT Devices," in Sensors (Basel), vol. 19, October 2019, doi: 10.3390/s19194312.], it is clear that the best option for data encryption, ensuring confidentiality,
+  is to use hardware-accelerated AES; otherwise, if that is not available,
   the second best option outlined in the paper is ChaCha20-Poly1305.
-  For simplicity's sake, it is assumed hardware-accelerated AES is available, and
+  For the sake of simplicity, it is assumed hardware-accelerated AES is available, and
   therefore the protocol will use AES with a key-length of 256 bits.
 
   As for integrity/authenticity, both SHA-2 or SHA-3 could be used, as they are secure and
-  well-established. From now on, it is assumed that the protocol uses SHA-3 512 bits through an HMAC
-  function.
+  well-established, though SHA-3 is not vulnerable to length extension attacks. From now on, it is assumed that the protocol uses SHA-3 512 bits through an HMAC
+  function, as described in RFC 2104.
 
-+ There are many different scenarios where the involved parties wish to communicate.
-  As the requirements for these scenarios are different, multiple protocols
++ There are several different scenarios in which the involved parties may wish to communicate.
+  As the requirements for these scenarios are different, multiple sub-protocols
   are presented below that are adequate for a specific circumstance.
   As previously mentioned, it is assumed that there is secure route discovery in the network, so
   a protocol for that is not detailed below.
@@ -512,126 +502,122 @@
   From now on, sensors and controllers will be generically referred to as _device_, $D$, when
   it applies to both.
 
-  - *Initial key establishment ("pairing")*
+  - *Initial Key Establishment ("pairing")*
 
     Before the devices can start communicating with the sink (and vice-versa), a symmetric key
-    needs to be shared be two. This key is only to be known to the sink and to the device in question,
-    that is, there is a different key for each sink-device pair.
+    needs to be shared between them. This key is only to be known to the sink and to the device in question (i.e., there is a different key $K_(D_i\/S)$ for each sink-device pair).
 
-    To reduce complexity of the protocol, it is assumed that the IoT devices come preloaded with
-    the sink's certificate (or, alternatively, of a CA that signs the sink's certificate -- for
-    simplicity's sake, it is presumed the IoT devices know the public key of the sink beforehand).
+    As to reduce the protocol's complexity, it is assumed that the IoT devices come preloaded with
+    the sink's certificate (or, alternatively, that of a Certificate Authority that signs the sink's certificate -- though for the sake of
+    simplicity, it is assumed below that the first option is true).
 
     #let key = $K_(D_i"/"S)$
 
     $
-    &D_i:&& "generates random" key \
+    &D_i:&& "generate random" key \
     &D_i:&& a <- "Enc"_"Pub"_S ("\"pair\"", D_i, key, N_D_i) \
-    &D_i:&& b <- "HMAC"(key, a) \
+    &D_i:&& b <- "HMAC"_key (a) \
     &D_i -> S:&& (a, b) \
 
-    &S:&& b == "HMAC"(key, a) \
-    &S:&& ("_", D_i, key, N_D_i) <- "Dec"_"Priv"_S (a) \
+    &S:&& b == "HMAC"_key (a) \
+    &S:&& ("\"pair\"", D_i, key, N_D_i) <- "Dec"_"Priv"_S (a) \
     &S:&& c <- E_key ("\"key establishment\"", D_i, N_D_i - 1, N_S) \
-    &S:&& d <- "HMAC"(key, c) \
+    &S:&& d <- "HMAC"_key (c) \
     &S -> D_i:&& (c, d) \
 
-    &D_i:&& d == "HMAC(key, c)" \
-    &D_i:&& ("_", D_i, N_D_i - 1, N_S) <- D_key (c) \
+    &D_i:&& d == "HMAC"_key (c) \
+    &D_i:&& ("\"key establishment\"", D_i, N_D_i - 1, N_S) <- D_key (c) \
     &D_i:&& N_D_i - 1 == N_D_i - 1 \
     &D_i:&& e <- E_key ("\"key established\"", D_i, N_S - 1) \
-    &D_i:&& f <- "HMAC"(key, e) \
+    &D_i:&& f <- "HMAC"_key (e) \
     &D_i -> S:&& (e, f) \
 
-    &S:&& f == "HMAC"(key, e) \
-    &S:&& ("_", D_i, N_S - 1) <- D_key (e) \
-    &S:&& N_S - 1 == N_S - 1
+    &S:&& f == "HMAC"_key (e) \
+    &S:&& ("\"key established\"", D_i, N_S - 1) <- D_key (e) \
+    &S:&& N_S - 1 == N_S - 1 \
+    &S:&& "assume" key "as key with" D_i
     $
 
     This protocol has a drawback that needs to be addressed in the central server itself:
-    the devices are not authenticated in the eyes of the server, since they don't hold any certificate.
-    This means that an attacker could start a pairing process with their device. To combat this,
+    the devices are not authenticated in the eyes of the server, since the former do not hold any certificate, meaning any attacker could start a pairing process with the server using anotheer device of their own. To prevent this,
     the server should only enter "pairing mode" when strictly necessary and the device ID of the device
     to be paired should be manually verified.
 
     Another important assumption made in this protocol is that the pairing process cannot be started
-    for a device that is already paired; otherwise an attacker could overwrite its key in the server.
+    for a device that is already paired - otherwise an attacker could overwrite its key in the server.
 
   - *Sensor*
 
     The sensor periodically sends messages back to the server, using the key they have established.
-    To ensure packets aren't reordered/dropped/replayed by a malicious actor, the information sent by the
+    To ensure packets are not reordered/dropped/replayed by a malicious actor, the information sent by the
     sensor has a sequence number of the measurement, $"Seq"_D_i$, allowing the sink to detect all of
     these attacks.
 
     $
-    &D_i:&& a <- E_key (D_i, "Seq"_D_i, "measurement data") \
-    &D_i:&& b <- "HMAC"(key, a) \
-    &D_i -> S:&& (a, b)
+    &D_i:&& c <- E_key (D_i, "Seq"_D_i, "<measurement data>") \
+    &D_i -> S:&& (c, "HMAC"_key (c))
     $
 
   - *Controller*
 
     The sink can also send messages to the controllers, in order to execute commands/actions, using
-    the key to have established. Here, it is imperative that the protocol is resistant to replay attacks,
+    the key previously established. Here, it is imperative that the protocol is resistant to replay attacks,
     so the value of a logic clock is included in the message. The value of this clock is increased every
     time the sink sends a new message to the controllers (for simplicity, it is assumed that there is only one
     shared logic clock for all controllers; it does not impact functionality). When a controller receives
-    a message from the sink, it checks if the received logic clock value is greater than the saved one;
-    if so, it accepts the message and executes the action, otherwise it silently discards it.
+    a message from the sink, it checks if the received logic clock value is greater than the saved one -
+    if so, it accepts the message and executes the action, and otherwise it silently discards it.
 
     $
-    &S:&& a <- E_key (D_i, t^S_"logic clock", "action data") \
-    &S:&& b <- "HMAC"(key, a) \
-    &S -> D_i:&& (a, b)
+    &S:&& c <- E_key (D_i, t^S_"logic clock", "<action data>") \
+    &S -> D_i:&& (c, "HMAC"_key (c))
     $
 
   - *Periodic Key Refreshing*
 
-    In order to attenuate the impact in the chance that a key is leaked and known to an attacker,
+    In order to attenuate the impact in the chance that a symmetric key is leaked and known to an attacker,
     all devices periodically refresh their keys with the sink. To prevent the attacker from getting
-    the new key, if it obtains the previous key afterwards, the new key is encrypted using the sink's
-    public key.
+    the new key if it later obtains a previous key, the new one is encrypted using the sink's
+    public key:
 
     $
-    &D_i:&& a <- E_key (D_i, "\"key refresh\"", "Enc"_"Pub"_S (K'_(D_i"/"S))) \
-    &D_i:&& b <- "HMAC"(key, a) \
-    &D_i -> S:&& (a, b)
+    &D_i:&& "generate random" K'_(D_i\/S) \
+    &D_i:&& c <- E_key (D_i, "\"key refresh\"", "Enc"_"Pub"_S (K'_(D_i"/"S))) \
+    &D_i -> S:&& (c, "HMAC"_key (c))
     $
 
     It should be noted that no nonces are included in this message because the old key will immediately
     become invalid, therefore rendering any replay attack useless.
 
-  - *En Route Re-encryption*
+  - *En Route Re-Encryption*
 
     In order to limit the actions of an attacker that obtained the key of a device, our protocol implements
-    _en route_ re-encryption, requiring an adversary to be a neighbour of the compromised device to be able
+    _en route_ re-encryption, requiring an adversary to be a direct neighbor of the compromised device to be able
     to reliably modify messages.
-    To achieve this, each device a message is hopped through re-encrypts it. To attenuate the performance
-    hit of this security measure, devices only re-encrypt messages with a certain probability $p$, simply
+    In order to achieve this, each device a message is hopped through re-encrypts it. Additionally, to attenuate the performance
+    hit of this security measure, devices only re-encrypt messages with a certain probability $0 < p < 1$, simply
     forwarding it otherwise.
 
-    Message re-encryption can be described by the following protocol:
+    Message re-encryption can be described as such:
 
     $
     &D_i -> D_j:&& "msg" \
-    &D_j:&& a <- E_(K_(D_j"/"S)) (D_j, "msg") \
-    &D_j:&& b <- "HMAC"(K_(D_j"/"S), a) \
-    &D_j -> D_k:&& (a, b)
+    &D_j:&& c <- E_(K_(D_j"/"S)) (D_j, "msg") \
+    &D_j -> D_k:&& (c, "HMAC"_(K_(D_j"/"S)) (c))
     $
 
-+ To recapitulate the desired properties, confidentiality, integrity and authentication must all be
-  guaranteed in the protocol. Other properties, such as resistance or detection against packet
++ To summarize the desired properties, confidentiality, integrity and authentication must all be
+  guaranteed by the protocol. Other properties, such as resistance or detection against packet
   reordering, dropping and replaying, are also taken into account.
 
   In all communications, confidentiality, integrity and authentication are assured by the use of a
   key only known to the sender and receiver (e.g., a device and the sink); authentication is only
   guaranteed in this case because the key is shared with exactly two parties.
   For simplicity's sake, one key is used for both encryption and integrity, but it would be trivial
-  to extend the protocol to use two separate keys for both by deriving them from the shared key.
+  to extend the protocol to use two separate keys for each of those by deriving them from the shared key.
 
   In the initial key establishment, the use of nonces and the public key of the sink ensures that
-  only the sink can decrypt the key and authenticates the sink in the eyes of the IoT device.
+  only the sink can decrypt the key, and authenticates the sink in the eyes of the IoT device.
   Assuming the server rejects duplicate pairings, the protocol is also resistant to replay attacks.
   Unfortunately, it is not possible to prevent packet dropping/reordering, but one of the parties will be
   aware that they did not receive the expected response.
@@ -646,13 +632,13 @@
   is out of the scope of this question, but a simple action would be to notify the system administrator.
 
   Similarly, the use of a logic clock in the message sent to the controller allows it to ignore replayed
-  or reordered messages, that is, messages where the logic clock value is lesser than or equal to the
+  or reordered messages, i.e., messages where the logic clock value is lesser than or equal to the
   current logic clock.
 
   Finally, the use of both periodic key refreshing and _en route_ re-encryption strengthens the
-  protocol in the unfortunate case that the attack is able to get ahold of the key, by
+  protocol in the unfortunate case that the attacker is able to get ahold of the key, by
   rotating the key used and using multiple keys, respectively. The new key sent in the key
   refreshing message is encrypted using the sink's public key, so an attacker cannot
-  compromise previous or subsequent sessions if they crack the device key. This key refreshing
+  compromise previous or subsequent sessions even if they crack the current device key. This key refreshing
   message cannot be replayed, since the server would already have the new key and discard
   the (now invalid) message.
